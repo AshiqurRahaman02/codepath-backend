@@ -30,6 +30,5 @@ const commentSchema = new mongoose_1.Schema({
     comment: { type: String, required: true },
     likes: { type: Number, default: 0 },
 });
-// Create and export the Comment model
 const CommentModel = mongoose_1.default.model('Comment', commentSchema);
 exports.default = CommentModel;

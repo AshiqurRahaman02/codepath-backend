@@ -104,7 +104,26 @@ questionRouter.get("/get/byCategories", (req, res) => __awaiter(void 0, void 0, 
         });
     }
 }));
-// Get a specific question by ID
+// get questions by levels
+questionRouter.get('/get/byLevels', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const levels = req.query.levels;
+    try {
+        let query = {};
+        if (levels && Array.isArray(levels)) {
+            query = { level: { $in: levels } };
+        }
+        // Fetch questions based on the query
+        const questions = yield questions_model_1.default.find(query);
+        if (questions.length === 0) {
+            return res.status(404).json({ isError: true, message: 'No questions found' });
+        }
+        res.status(200).json({ isError: false, questions });
+    }
+    catch (error) {
+        res.status(500).json({ isError: true, message: 'Error fetching questions', error: error.message });
+    }
+}));
+// get a specific question by ID
 questionRouter.get("/getById/:id", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const questionId = req.params.id;
     try {
@@ -124,7 +143,7 @@ questionRouter.get("/getById/:id", (req, res) => __awaiter(void 0, void 0, void 
         });
     }
 }));
-// Get a random question
+// get a random question
 questionRouter.get("/random", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { categories } = req.body;
     try {
