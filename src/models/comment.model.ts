@@ -1,6 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-// Define the comment schema
 export interface IComment extends Document {
   userID: mongoose.Types.ObjectId;
   userName: string;
@@ -15,6 +14,6 @@ const commentSchema: Schema = new Schema({
   likes: { type: Number, default: 0 },
 });
 
-// Create and export the Comment model
+
 const CommentModel = mongoose.model<IComment>('Comment', commentSchema);
 export default CommentModel;

@@ -112,7 +112,31 @@ questionRouter.get("/get/byCategories", async (req: Request, res: Response) => {
 	}
 });
 
-// Get a specific question by ID
+// get questions by levels
+questionRouter.get('/get/byLevels', async (req: Request, res: Response) => {
+	const levels: string | string[] = req.query.levels as string | string[];
+  
+	try {
+	  let query: any = {};
+  
+	  if (levels && Array.isArray(levels)) {
+		query = { level: { $in: levels } }; 
+	  }
+  
+	  // Fetch questions based on the query
+	  const questions: IQuestion[] = await QuestionsModel.find(query);
+  
+	  if (questions.length === 0) {
+		return res.status(404).json({ isError: true, message: 'No questions found' });
+	  }
+  
+	  res.status(200).json({ isError: false, questions });
+	} catch (error: any) {
+	  res.status(500).json({ isError: true, message: 'Error fetching questions', error: error.message });
+	}
+  });
+
+// get a specific question by ID
 questionRouter.get("/getById/:id", async (req: Request, res: Response) => {
 	const questionId: string = req.params.id;
 
@@ -135,7 +159,7 @@ questionRouter.get("/getById/:id", async (req: Request, res: Response) => {
 	}
 });
 
-// Get a random question
+// get a random question
 questionRouter.get("/random", async (req: Request, res: Response) => {
 	const { categories } = req.body;
 
