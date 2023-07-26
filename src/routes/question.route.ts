@@ -241,6 +241,40 @@ questionRouter.put(
 	}
 );
 
+// update like
+questionRouter.put("/update/like/:videoId", async (req, res) => {
+	const videoId = req.params.videoId;
+	const { action } = req.body;
+  
+	try {
+	  const question = await QuestionsModel.findById(videoId);
+  
+	  if (!question) {
+		return res
+		  .status(404)
+		  .json({ isError: true, message: "Video not found" });
+	  }
+  
+	  if (action === "increment") {
+		question.likes++;
+	  } else if (action === "decrement") {
+		question.likes--;
+	  } else {
+		return res.status(400).json({ isError: true, message: "Invalid action" });
+	  }
+  
+	  const updatedVideo = await question.save();
+  
+	  res.status(200).json({
+		isError: false,
+		message: "Likes updated successfully",
+		video: updatedVideo,
+	  });
+	} catch (error:any) {
+	  res.status(500).json({ isError: true, message: error.message });
+	}
+  });
+
 // Delete a question by ID
 questionRouter.delete(
 	"/delete/:id",
