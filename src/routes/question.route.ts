@@ -10,7 +10,8 @@ questionRouter.post(
 	verifyToken,
 	authorizedUser,
 	async (req: Request, res: Response) => {
-		const { question, answer, category, level, creatorID, creatorName } = req.body;
+		const { question, answer, category, level, creatorID, creatorName } =
+			req.body;
 
 		try {
 			const newQuestion: IQuestion = new QuestionsModel({
@@ -113,28 +114,34 @@ questionRouter.get("/get/byCategories", async (req: Request, res: Response) => {
 });
 
 // get questions by levels
-questionRouter.get('/get/byLevels', async (req: Request, res: Response) => {
+questionRouter.get("/get/byLevels", async (req: Request, res: Response) => {
 	const levels: string | string[] = req.query.levels as string | string[];
-  
+
 	try {
-	  let query: any = {};
-  
-	  if (levels && Array.isArray(levels)) {
-		query = { level: { $in: levels } }; 
-	  }
-  
-	  // Fetch questions based on the query
-	  const questions: IQuestion[] = await QuestionsModel.find(query);
-  
-	  if (questions.length === 0) {
-		return res.status(404).json({ isError: true, message: 'No questions found' });
-	  }
-  
-	  res.status(200).json({ isError: false, questions });
+		let query: any = {};
+
+		if (levels && Array.isArray(levels)) {
+			query = { level: { $in: levels } };
+		}
+
+		// Fetch questions based on the query
+		const questions: IQuestion[] = await QuestionsModel.find(query);
+
+		if (questions.length === 0) {
+			return res
+				.status(404)
+				.json({ isError: true, message: "No questions found" });
+		}
+
+		res.status(200).json({ isError: false, questions });
 	} catch (error: any) {
-	  res.status(500).json({ isError: true, message: 'Error fetching questions', error: error.message });
+		res.status(500).json({
+			isError: true,
+			message: "Error fetching questions",
+			error: error.message,
+		});
 	}
-  });
+});
 
 // get a specific question by ID
 questionRouter.get("/getById/:id", async (req: Request, res: Response) => {
@@ -242,38 +249,44 @@ questionRouter.put(
 );
 
 // update like
-questionRouter.put("/update/like/:videoId", async (req, res) => {
-	const videoId = req.params.videoId;
-	const { action } = req.body;
-  
-	try {
-	  const question = await QuestionsModel.findById(videoId);
-  
-	  if (!question) {
-		return res
-		  .status(404)
-		  .json({ isError: true, message: "Video not found" });
-	  }
-  
-	  if (action === "increment") {
-		question.likes++;
-	  } else if (action === "decrement") {
-		question.likes--;
-	  } else {
-		return res.status(400).json({ isError: true, message: "Invalid action" });
-	  }
-  
-	  const updatedVideo = await question.save();
-  
-	  res.status(200).json({
-		isError: false,
-		message: "Likes updated successfully",
-		video: updatedVideo,
-	  });
-	} catch (error:any) {
-	  res.status(500).json({ isError: true, message: error.message });
+questionRouter.put(
+	"/update/like/:questionId",
+	verifyToken,
+	async (req, res) => {
+		const questionId = req.params.questionId;
+		const { action } = req.body;
+
+		try {
+			const question = await QuestionsModel.findById(questionId);
+
+			if (!question) {
+				return res
+					.status(404)
+					.json({ isError: true, message: "questionId not found" });
+			}
+
+			if (action === "increment") {
+				question.likes++;
+			} else if (action === "decrement") {
+				question.likes--;
+			} else {
+				return res
+					.status(400)
+					.json({ isError: true, message: "Invalid action" });
+			}
+
+			const updatedVideo = await question.save();
+
+			res.status(200).json({
+				isError: false,
+				message: "Likes updated successfully",
+				video: updatedVideo,
+			});
+		} catch (error: any) {
+			res.status(500).json({ isError: true, message: error.message });
+		}
 	}
-  });
+);
 
 // Delete a question by ID
 questionRouter.delete(
@@ -294,12 +307,10 @@ questionRouter.delete(
 
 			// Check if the authenticated user is the creator of the question
 			if (question.creatorID !== req.user?.id) {
-				return res
-					.status(403)
-					.json({
-						isError: true,
-						message: "You are not authorized to delete this question",
-					});
+				return res.status(403).json({
+					isError: true,
+					message: "You are not authorized to delete this question",
+				});
 			}
 
 			// If the user is the creator, proceed with deleting the question

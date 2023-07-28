@@ -4,6 +4,7 @@ import bodyParser from 'body-parser';
 
 import userRouter from './routes/user.route';
 import questionRouter from './routes/question.route';
+import commentRouter from './routes/comment.route';
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use("/user", userRouter)
 app.use("/question", questionRouter)
+app.use("/comment", commentRouter)
 
 
 export default app;

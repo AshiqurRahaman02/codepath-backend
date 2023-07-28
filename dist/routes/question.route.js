@@ -105,7 +105,7 @@ questionRouter.get("/get/byCategories", (req, res) => __awaiter(void 0, void 0, 
     }
 }));
 // get questions by levels
-questionRouter.get('/get/byLevels', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+questionRouter.get("/get/byLevels", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const levels = req.query.levels;
     try {
         let query = {};
@@ -115,12 +115,18 @@ questionRouter.get('/get/byLevels', (req, res) => __awaiter(void 0, void 0, void
         // Fetch questions based on the query
         const questions = yield questions_model_1.default.find(query);
         if (questions.length === 0) {
-            return res.status(404).json({ isError: true, message: 'No questions found' });
+            return res
+                .status(404)
+                .json({ isError: true, message: "No questions found" });
         }
         res.status(200).json({ isError: false, questions });
     }
     catch (error) {
-        res.status(500).json({ isError: true, message: 'Error fetching questions', error: error.message });
+        res.status(500).json({
+            isError: true,
+            message: "Error fetching questions",
+            error: error.message,
+        });
     }
 }));
 // get a specific question by ID
@@ -202,6 +208,39 @@ questionRouter.put("/update/:id", auth_middleware_1.verifyToken, auth_middleware
         });
     }
 }));
+// update like
+questionRouter.put("/update/like/:questionId", auth_middleware_1.verifyToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const questionId = req.params.questionId;
+    const { action } = req.body;
+    try {
+        const question = yield questions_model_1.default.findById(questionId);
+        if (!question) {
+            return res
+                .status(404)
+                .json({ isError: true, message: "questionId not found" });
+        }
+        if (action === "increment") {
+            question.likes++;
+        }
+        else if (action === "decrement") {
+            question.likes--;
+        }
+        else {
+            return res
+                .status(400)
+                .json({ isError: true, message: "Invalid action" });
+        }
+        const updatedVideo = yield question.save();
+        res.status(200).json({
+            isError: false,
+            message: "Likes updated successfully",
+            video: updatedVideo,
+        });
+    }
+    catch (error) {
+        res.status(500).json({ isError: true, message: error.message });
+    }
+}));
 // Delete a question by ID
 questionRouter.delete("/delete/:id", auth_middleware_1.verifyToken, auth_middleware_1.authorizedUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -216,9 +255,7 @@ questionRouter.delete("/delete/:id", auth_middleware_1.verifyToken, auth_middlew
         }
         // Check if the authenticated user is the creator of the question
         if (question.creatorID !== ((_a = req.user) === null || _a === void 0 ? void 0 : _a.id)) {
-            return res
-                .status(403)
-                .json({
+            return res.status(403).json({
                 isError: true,
                 message: "You are not authorized to delete this question",
             });
