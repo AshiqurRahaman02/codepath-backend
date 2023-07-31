@@ -33,7 +33,7 @@ const questionsSchema = new mongoose_1.Schema({
         type: String,
         required: true,
     },
-    category: {
+    skill: {
         type: String,
         required: true,
     },
@@ -41,7 +41,7 @@ const questionsSchema = new mongoose_1.Schema({
         type: Number,
         default: 0,
     },
-    level: {
+    difficulty: {
         type: String,
         enum: ["Easy", "Medium", "Hard"],
         default: "Medium",
@@ -57,6 +57,14 @@ const questionsSchema = new mongoose_1.Schema({
     date: {
         type: Date,
         default: Date.now,
+    },
+    attemptedBy: {
+        type: [String],
+        default: [],
+    },
+    likedBy: {
+        type: [String],
+        default: [],
     },
 }, { timestamps: true });
 const QuestionsModel = mongoose_1.default.model("Question", questionsSchema);

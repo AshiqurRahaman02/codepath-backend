@@ -12,7 +12,7 @@ const commentSchema: Schema = new Schema({
   userName: { type: String, required: true },
   comment: { type: String, required: true },
   likes: { type: Number, default: 0 },
-});
+},{timestamps: true});
 
 
 const CommentModel = mongoose.model<IComment>('Comment', commentSchema);

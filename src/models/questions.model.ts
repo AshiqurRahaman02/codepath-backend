@@ -1,15 +1,16 @@
-
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IQuestion extends Document {
 	question: string;
 	answer: string;
-	category: string;
+	skill: string;
 	likes: number;
-	level: "Easy" | "Medium" | "Hard";
+	difficulty: "Easy" | "Medium" | "Hard";
 	creatorID: string;
 	creatorName: string;
 	date: Date;
+	attemptedBy: string[];
+	likedBy: string[];
 }
 
 const questionsSchema = new Schema<IQuestion>(
@@ -22,7 +23,7 @@ const questionsSchema = new Schema<IQuestion>(
 			type: String,
 			required: true,
 		},
-		category: {
+		skill: {
 			type: String,
 			required: true,
 		},
@@ -30,7 +31,7 @@ const questionsSchema = new Schema<IQuestion>(
 			type: Number,
 			default: 0,
 		},
-		level: {
+		difficulty: {
 			type: String,
 			enum: ["Easy", "Medium", "Hard"],
 			default: "Medium",
@@ -46,6 +47,14 @@ const questionsSchema = new Schema<IQuestion>(
 		date: {
 			type: Date,
 			default: Date.now,
+		},
+		attemptedBy: {
+			type: [String],
+			default: [],
+		},
+		likedBy: {
+			type: [String],
+			default: [],
 		},
 	},
 	{ timestamps: true }

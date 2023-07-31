@@ -42,8 +42,11 @@ userRouter.post("/register", (req, res) => __awaiter(void 0, void 0, void 0, fun
     const { email, password, name } = req.body;
     try {
         let user = yield user_model_1.default.findOne({ email });
+        let firstName = name.split(" ")[0].toLowerCase();
+        let tag = `@${firstName}${Math.floor(1000 + Math.random() * 9000)}`;
+        console.log(tag);
         if (user) {
-            return res.status(404).json({
+            return res.status(201).json({
                 isError: true,
                 message: "Email already used in this website.",
             });
@@ -51,13 +54,14 @@ userRouter.post("/register", (req, res) => __awaiter(void 0, void 0, void 0, fun
         bcrypt_1.default.hash(password, 5, (err, hash) => __awaiter(void 0, void 0, void 0, function* () {
             if (err)
                 throw err;
-            const user = new user_model_1.default({ email, password: hash, name });
-            console.log(user);
+            const user = new user_model_1.default({ email, password: hash, name, tag });
             yield user.save();
-            console.log("User registered successfully");
+            console.log(user === null || user === void 0 ? void 0 : user._id);
             res.status(201).json({
                 isError: false,
-                message: "User registered successfully",
+                message: "Welcome to our website",
+                token: jsonwebtoken_1.default.sign({ userId: user === null || user === void 0 ? void 0 : user._id }, jwtSecretKey),
+                user,
             });
         }));
     }
@@ -77,6 +81,7 @@ userRouter.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, functi
         }
         bcrypt_1.default.compare(password, user.password, (err, result) => {
             if (result) {
+                console.log(user === null || user === void 0 ? void 0 : user._id);
                 res.status(200).json({
                     isError: false,
                     message: "Welcome Back to our website",

@@ -1,8 +1,48 @@
 import express, { Request, Response } from "express";
+import fs from "fs";
+import path from "path";
 import QuestionsModel, { IQuestion } from "../models/questions.model";
 import { verifyToken, authorizedUser } from "../middlewares/auth.middleware";
 
 const questionRouter = express.Router();
+
+// for admin only
+questionRouter.post("/post-data", async (req: Request, res: Response) => {
+	try {
+		const dataPath = path.join(__dirname, "../../data.json");
+		const jsonData = fs.readFileSync(dataPath, "utf8");
+		const questionsData: IQuestion[] = JSON.parse(jsonData).data;
+
+		for (const questionData of questionsData) {
+			// Check if the question already exists in the database
+			const existingQuestion = await QuestionsModel.findOne({
+				question: questionData.question,
+			});
+
+			if (!existingQuestion) {
+				// Create a new question document in the database if it doesn't exist
+				const question = new QuestionsModel({
+					question: questionData.question,
+					answer: questionData.answer,
+					skill: questionData.skill,
+					difficulty: questionData.difficulty,
+					creatorID: questionData.creatorID,
+					creatorName: questionData.creatorName,
+				});
+				await question.save();
+			}else{
+				console.log(questionData.question)
+			}
+		}
+
+		res.status(200).json({ message: "Data posted successfully" });
+	} catch (error: any) {
+		res.status(500).json({
+			message: "Failed to post data",
+			error: error.message,
+		});
+	}
+});
 
 // Add a new question
 questionRouter.post(
@@ -53,6 +93,125 @@ questionRouter.get("/all", async (req: Request, res: Response) => {
 	}
 });
 
+// Get all questions by query
+questionRouter.get("/byQuery",verifyToken, async (req: Request, res: Response) => {
+	try {
+		const userId = req.user?.id;
+		const { sort } = req.query;
+		const status: string | string[] = req.query.s as string | string[];
+		const difficulty: string | string[] = req.query.d as string | string[];
+		const skills: string | string[] = req.query.skill as string | string[];
+		const query: any = {};
+
+		if (sort) {
+			// Handle sorting
+			if (sort === "po") {
+				// Sort by popularity (if 'sort' is "po")
+				query.likes = -1; // Sort by likes in descending order
+			} else if (sort === "asc") {
+				// Sort by difficulty: Easy to Hard (if 'sort' is "asc")
+				query.difficulty = {
+					$sort: {
+						$cond: [
+							{ $eq: ["$difficulty", "Easy"] },
+							1,
+							{ $cond: [{ $eq: ["$difficulty", "Medium"] }, 2, 3] },
+						],
+					},
+				};
+			} else if (sort === "desc") {
+				// Sort by difficulty: Hard to Easy (if 'sort' is "desc")
+				query.difficulty = {
+					$sort: {
+						$cond: [
+							{ $eq: ["$difficulty", "Hard"] },
+							1,
+							{ $cond: [{ $eq: ["$difficulty", "Medium"] }, 2, 3] },
+						],
+					},
+				};
+			}
+		}
+
+		if (status) {
+			// Handle status filtering
+			if (status === "a") {
+				// Filter by 'Attempted' status (if 'status' is "a")
+				query.attemptedBy = userId;
+			} else if (status === "not") {
+				// Filter by 'Not Attempted' status (if 'status' is "not")
+				query.attemptedBy = { $not: { $eq: userId } };
+			}
+		}
+
+		if (difficulty) {
+			// Handle difficulty filtering
+			if (difficulty === "e") {
+				// Filter by 'Easy' difficulty (if 'd' is "e")
+				query.difficulty = "Easy";
+			}
+			if (difficulty === "m") {
+				// Filter by 'Medium' difficulty (if 'd' is "m")
+				query.difficulty = "Medium";
+			}
+			if (difficulty === "h") {
+				// Filter by 'Hard' difficulty (if 'd' is "h")
+				query.difficulty = "Hard";
+			}
+		}
+
+		// Map the sort form to the actual skill name
+		const skillMap: Record<string, string> = {
+			js: "JavaScript",
+			node: "Node Js",
+			ts: "TypeScript",
+			react: "React",
+			// Add other mappings based on your requirements
+		};
+
+		// Create an array of all skill names
+		const allSkills = Object.values(skillMap);
+
+		if (skills) {
+			// Handle skills filtering
+			if (Array.isArray(skills)) {
+				// Filter based on selected skills and include others if present
+				const selectedSkills = skills.filter(
+					(skill) => skillMap[skill] || skill === "others"
+				);
+				if (selectedSkills.length === 0) {
+					// If no valid skills are selected, return all skills except the ones in the skillMap
+					query.skill = { $nin: allSkills };
+				} else {
+					query.skill = {
+						$in: selectedSkills.map(
+							(sortForm) => skillMap[sortForm] || sortForm
+						),
+					};
+				}
+			} else {
+				// If 'skills' is a single string, filter based on that skill
+				if (skills === "others") {
+					query.skill = { $nin: allSkills }; // Filter out all skills that are in the skillMap
+				} else {
+					query.skill = skillMap[skills];
+				}
+			}
+		}
+
+		// Retrieve questions based on the constructed query
+		const questions: IQuestion[] = await QuestionsModel.find(query);
+
+		res.status(200).json({ isError: false, questions });
+	} catch (error: any) {
+		res.status(500).json({
+			isError: true,
+			message: "Failed to retrieve questions",
+			error: error.message,
+		});
+	}
+});
+
 // Search questions by input text
 questionRouter.get(
 	"/search/:searchTerm",
@@ -79,25 +238,21 @@ questionRouter.get(
 );
 
 // get by categories
-questionRouter.get("/get/byCategories", async (req: Request, res: Response) => {
-	const categories: string | string[] = req.query.categories as
-		| string
-		| string[];
+questionRouter.get("/get/bySkill", async (req: Request, res: Response) => {
+	const skills: string | string[] = req.query.skill as string | string[];
 
 	try {
 		let questions: IQuestion[];
-		if (categories) {
-			const categoryArray = Array.isArray(categories)
-				? categories
-				: [categories];
+		if (skills) {
+			const categoryArray = Array.isArray(skills) ? skills : [skills];
 
 			// Convert the category names to regular expressions for case-insensitive search
 			const regexArray = categoryArray.map(
-				(category) => new RegExp(category, "i")
+				(skill) => new RegExp(skill, "i")
 			);
 
 			questions = await QuestionsModel.find({
-				category: { $in: regexArray },
+				skill: { $in: regexArray },
 			});
 		} else {
 			questions = await QuestionsModel.find();
@@ -255,6 +410,7 @@ questionRouter.put(
 	async (req, res) => {
 		const questionId = req.params.questionId;
 		const { action } = req.body;
+		const userId = req.user?.id;
 
 		try {
 			const question = await QuestionsModel.findById(questionId);
@@ -267,6 +423,7 @@ questionRouter.put(
 
 			if (action === "increment") {
 				question.likes++;
+				question.likedBy.push(userId);
 			} else if (action === "decrement") {
 				question.likes--;
 			} else {

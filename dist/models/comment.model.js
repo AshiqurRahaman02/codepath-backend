@@ -29,6 +29,6 @@ const commentSchema = new mongoose_1.Schema({
     userName: { type: String, required: true },
     comment: { type: String, required: true },
     likes: { type: Number, default: 0 },
-});
+}, { timestamps: true });
 const CommentModel = mongoose_1.default.model('Comment', commentSchema);
 exports.default = CommentModel;

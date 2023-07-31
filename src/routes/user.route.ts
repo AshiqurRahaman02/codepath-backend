@@ -34,21 +34,27 @@ userRouter.post("/register", async (req: Request, res: Response) => {
 	const { email, password, name } = req.body;
 	try {
 		let user = await UserModel.findOne({ email });
+		let firstName = name.split(" ")[0].toLowerCase();
+		let tag = `@${firstName}${Math.floor(
+			1000 + Math.random() * 9000
+		)}`;
+		console.log(tag);
 		if (user) {
-			return res.status(404).json({
+			return res.status(201).json({
 				isError: true,
 				message: "Email already used in this website.",
 			});
 		}
 		bcrypt.hash(password, 5, async (err, hash) => {
 			if (err) throw err;
-			const user = new UserModel({ email, password: hash, name });
-			console.log(user);
+			const user = new UserModel({ email, password: hash, name, tag });
 			await user.save();
-			console.log("User registered successfully");
+			console.log(user?._id);
 			res.status(201).json({
 				isError: false,
-				message: "User registered successfully",
+				message: "Welcome to our website",
+				token: jwt.sign({ userId: user?._id }, jwtSecretKey),
+				user,
 			});
 		});
 	} catch (error: any) {
@@ -68,6 +74,7 @@ userRouter.post("/login", async (req: Request, res: Response) => {
 		}
 		bcrypt.compare(password, user.password, (err, result) => {
 			if (result) {
+				console.log(user?._id);
 				res.status(200).json({
 					isError: false,
 					message: "Welcome Back to our website",

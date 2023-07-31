@@ -13,9 +13,47 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const questions_model_1 = __importDefault(require("../models/questions.model"));
 const auth_middleware_1 = require("../middlewares/auth.middleware");
 const questionRouter = express_1.default.Router();
+// for admin only
+questionRouter.post("/post-data", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const dataPath = path_1.default.join(__dirname, "../../data.json");
+        const jsonData = fs_1.default.readFileSync(dataPath, "utf8");
+        const questionsData = JSON.parse(jsonData).data;
+        for (const questionData of questionsData) {
+            // Check if the question already exists in the database
+            const existingQuestion = yield questions_model_1.default.findOne({
+                question: questionData.question,
+            });
+            if (!existingQuestion) {
+                // Create a new question document in the database if it doesn't exist
+                const question = new questions_model_1.default({
+                    question: questionData.question,
+                    answer: questionData.answer,
+                    skill: questionData.skill,
+                    difficulty: questionData.difficulty,
+                    creatorID: questionData.creatorID,
+                    creatorName: questionData.creatorName,
+                });
+                yield question.save();
+            }
+            else {
+                console.log(questionData.question);
+            }
+        }
+        res.status(200).json({ message: "Data posted successfully" });
+    }
+    catch (error) {
+        res.status(500).json({
+            message: "Failed to post data",
+            error: error.message,
+        });
+    }
+}));
 // Add a new question
 questionRouter.post("/add", auth_middleware_1.verifyToken, auth_middleware_1.authorizedUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { question, answer, category, level, creatorID, creatorName } = req.body;
@@ -57,6 +95,120 @@ questionRouter.get("/all", (req, res) => __awaiter(void 0, void 0, void 0, funct
         });
     }
 }));
+// Get all questions by query
+questionRouter.get("/byQuery", auth_middleware_1.verifyToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        const { sort } = req.query;
+        const status = req.query.s;
+        const difficulty = req.query.d;
+        const skills = req.query.skill;
+        const query = {};
+        if (sort) {
+            // Handle sorting
+            if (sort === "po") {
+                // Sort by popularity (if 'sort' is "po")
+                query.likes = -1; // Sort by likes in descending order
+            }
+            else if (sort === "asc") {
+                // Sort by difficulty: Easy to Hard (if 'sort' is "asc")
+                query.difficulty = {
+                    $sort: {
+                        $cond: [
+                            { $eq: ["$difficulty", "Easy"] },
+                            1,
+                            { $cond: [{ $eq: ["$difficulty", "Medium"] }, 2, 3] },
+                        ],
+                    },
+                };
+            }
+            else if (sort === "desc") {
+                // Sort by difficulty: Hard to Easy (if 'sort' is "desc")
+                query.difficulty = {
+                    $sort: {
+                        $cond: [
+                            { $eq: ["$difficulty", "Hard"] },
+                            1,
+                            { $cond: [{ $eq: ["$difficulty", "Medium"] }, 2, 3] },
+                        ],
+                    },
+                };
+            }
+        }
+        if (status) {
+            // Handle status filtering
+            if (status === "a") {
+                // Filter by 'Attempted' status (if 'status' is "a")
+                query.attemptedBy = userId;
+            }
+            else if (status === "not") {
+                // Filter by 'Not Attempted' status (if 'status' is "not")
+                query.attemptedBy = { $not: { $eq: userId } };
+            }
+        }
+        if (difficulty) {
+            // Handle difficulty filtering
+            if (difficulty === "e") {
+                // Filter by 'Easy' difficulty (if 'd' is "e")
+                query.difficulty = "Easy";
+            }
+            if (difficulty === "m") {
+                // Filter by 'Medium' difficulty (if 'd' is "m")
+                query.difficulty = "Medium";
+            }
+            if (difficulty === "h") {
+                // Filter by 'Hard' difficulty (if 'd' is "h")
+                query.difficulty = "Hard";
+            }
+        }
+        // Map the sort form to the actual skill name
+        const skillMap = {
+            js: "JavaScript",
+            node: "Node Js",
+            ts: "TypeScript",
+            react: "React",
+            // Add other mappings based on your requirements
+        };
+        // Create an array of all skill names
+        const allSkills = Object.values(skillMap);
+        if (skills) {
+            // Handle skills filtering
+            if (Array.isArray(skills)) {
+                // Filter based on selected skills and include others if present
+                const selectedSkills = skills.filter((skill) => skillMap[skill] || skill === "others");
+                if (selectedSkills.length === 0) {
+                    // If no valid skills are selected, return all skills except the ones in the skillMap
+                    query.skill = { $nin: allSkills };
+                }
+                else {
+                    query.skill = {
+                        $in: selectedSkills.map((sortForm) => skillMap[sortForm] || sortForm),
+                    };
+                }
+            }
+            else {
+                // If 'skills' is a single string, filter based on that skill
+                if (skills === "others") {
+                    query.skill = { $nin: allSkills }; // Filter out all skills that are in the skillMap
+                }
+                else {
+                    query.skill = skillMap[skills];
+                }
+            }
+        }
+        // Retrieve questions based on the constructed query
+        const questions = yield questions_model_1.default.find(query);
+        res.status(200).json({ isError: false, questions });
+    }
+    catch (error) {
+        res.status(500).json({
+            isError: true,
+            message: "Failed to retrieve questions",
+            error: error.message,
+        });
+    }
+}));
 // Search questions by input text
 questionRouter.get("/search/:searchTerm", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -77,18 +229,16 @@ questionRouter.get("/search/:searchTerm", (req, res) => __awaiter(void 0, void 0
     }
 }));
 // get by categories
-questionRouter.get("/get/byCategories", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const categories = req.query.categories;
+questionRouter.get("/get/bySkill", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const skills = req.query.skill;
     try {
         let questions;
-        if (categories) {
-            const categoryArray = Array.isArray(categories)
-                ? categories
-                : [categories];
+        if (skills) {
+            const categoryArray = Array.isArray(skills) ? skills : [skills];
             // Convert the category names to regular expressions for case-insensitive search
-            const regexArray = categoryArray.map((category) => new RegExp(category, "i"));
+            const regexArray = categoryArray.map((skill) => new RegExp(skill, "i"));
             questions = yield questions_model_1.default.find({
-                category: { $in: regexArray },
+                skill: { $in: regexArray },
             });
         }
         else {
@@ -243,7 +393,7 @@ questionRouter.put("/update/like/:questionId", auth_middleware_1.verifyToken, (r
 }));
 // Delete a question by ID
 questionRouter.delete("/delete/:id", auth_middleware_1.verifyToken, auth_middleware_1.authorizedUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _b;
     try {
         const questionId = req.params.id;
         // Check if the question exists
@@ -254,7 +404,7 @@ questionRouter.delete("/delete/:id", auth_middleware_1.verifyToken, auth_middlew
                 .json({ isError: true, message: "Question not found" });
         }
         // Check if the authenticated user is the creator of the question
-        if (question.creatorID !== ((_a = req.user) === null || _a === void 0 ? void 0 : _a.id)) {
+        if (question.creatorID !== ((_b = req.user) === null || _b === void 0 ? void 0 : _b.id)) {
             return res.status(403).json({
                 isError: true,
                 message: "You are not authorized to delete this question",

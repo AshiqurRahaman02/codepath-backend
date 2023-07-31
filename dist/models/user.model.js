@@ -33,6 +33,7 @@ const userSchema = new mongoose_1.Schema({
         enum: ["client", "creator", "admin"],
         default: "client",
     },
+    tag: { type: String, required: true },
     bookmarks: [
         {
             questionID: { type: mongoose_1.default.Types.ObjectId, required: true },

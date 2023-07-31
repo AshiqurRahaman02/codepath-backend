@@ -12,6 +12,9 @@
     "jsonwebtoken": "^9.0.1",
     "mongoose": "^7.4.1"
   },
+  "scripts": {
+    "dev": "node dist/index.js"
+  },
   "devDependencies": {
     "@types/bcrypt": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.2",

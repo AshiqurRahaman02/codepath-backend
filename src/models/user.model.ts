@@ -5,6 +5,7 @@ export interface IUser extends Document {
 	email: string;
 	password: string;
 	userType: "client" | "creator" | "admin";
+	tag: string;
 	bookmarks: { questionID: mongoose.Types.ObjectId; question: string }[];
 }
 
@@ -17,6 +18,7 @@ const userSchema: Schema = new Schema({
 		enum: ["client", "creator", "admin"],
 		default: "client",
 	},
+	tag: { type: String, required: true },
 	bookmarks: [
 		{
 			questionID: { type: mongoose.Types.ObjectId, required: true },
