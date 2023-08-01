@@ -432,12 +432,13 @@ questionRouter.put(
 					.json({ isError: true, message: "Invalid action" });
 			}
 
-			const updatedVideo = await question.save();
+			const updatedQuestion = await question.save();
 
+			console.log(updatedQuestion);
 			res.status(200).json({
 				isError: false,
 				message: "Likes updated successfully",
-				video: updatedVideo,
+				question: updatedQuestion,
 			});
 		} catch (error: any) {
 			res.status(500).json({ isError: true, message: error.message });

@@ -360,8 +360,10 @@ questionRouter.put("/update/:id", auth_middleware_1.verifyToken, auth_middleware
 }));
 // update like
 questionRouter.put("/update/like/:questionId", auth_middleware_1.verifyToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _b;
     const questionId = req.params.questionId;
     const { action } = req.body;
+    const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b.id;
     try {
         const question = yield questions_model_1.default.findById(questionId);
         if (!question) {
@@ -371,6 +373,7 @@ questionRouter.put("/update/like/:questionId", auth_middleware_1.verifyToken, (r
         }
         if (action === "increment") {
             question.likes++;
+            question.likedBy.push(userId);
         }
         else if (action === "decrement") {
             question.likes--;
@@ -380,11 +383,12 @@ questionRouter.put("/update/like/:questionId", auth_middleware_1.verifyToken, (r
                 .status(400)
                 .json({ isError: true, message: "Invalid action" });
         }
-        const updatedVideo = yield question.save();
+        const updatedQuestion = yield question.save();
+        console.log(updatedQuestion);
         res.status(200).json({
             isError: false,
             message: "Likes updated successfully",
-            video: updatedVideo,
+            question: updatedQuestion,
         });
     }
     catch (error) {
@@ -393,7 +397,7 @@ questionRouter.put("/update/like/:questionId", auth_middleware_1.verifyToken, (r
 }));
 // Delete a question by ID
 questionRouter.delete("/delete/:id", auth_middleware_1.verifyToken, auth_middleware_1.authorizedUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b;
+    var _c;
     try {
         const questionId = req.params.id;
         // Check if the question exists
@@ -404,7 +408,7 @@ questionRouter.delete("/delete/:id", auth_middleware_1.verifyToken, auth_middlew
                 .json({ isError: true, message: "Question not found" });
         }
         // Check if the authenticated user is the creator of the question
-        if (question.creatorID !== ((_b = req.user) === null || _b === void 0 ? void 0 : _b.id)) {
+        if (question.creatorID !== ((_c = req.user) === null || _c === void 0 ? void 0 : _c.id)) {
             return res.status(403).json({
                 isError: true,
                 message: "You are not authorized to delete this question",
