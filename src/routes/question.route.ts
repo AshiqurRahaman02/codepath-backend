@@ -420,6 +420,11 @@ questionRouter.put(
 					.status(404)
 					.json({ isError: true, message: "questionId not found" });
 			}
+			if(question.likedBy.includes(userId)){
+				return res
+					.status(404)
+					.json({ isError: true, message: "You cannot like one question multiple times." });
+			}
 
 			if (action === "increment") {
 				question.likes++;

@@ -19,7 +19,6 @@ declare global {
 export const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
   const token = req.header('Authorization')?.split(' ')[0];
 
-  console.log(token)
   if (!token) {
     return res.status(401).json({isError: true, message: 'No token, authorization denied' });
   }

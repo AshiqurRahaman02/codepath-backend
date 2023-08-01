@@ -35,9 +35,7 @@ userRouter.post("/register", async (req: Request, res: Response) => {
 	try {
 		let user = await UserModel.findOne({ email });
 		let firstName = name.split(" ")[0].toLowerCase();
-		let tag = `@${firstName}${Math.floor(
-			1000 + Math.random() * 9000
-		)}`;
+		let tag = `@${firstName}${Math.floor(1000 + Math.random() * 9000)}`;
 		console.log(tag);
 		if (user) {
 			return res.status(201).json({
@@ -90,50 +88,112 @@ userRouter.post("/login", async (req: Request, res: Response) => {
 		});
 	} catch (error: any) {
 		console.log(error);
-		res.status(404).json({isError: true, message: error.message });
+		res.status(404).json({ isError: true, message: error.message });
+	}
+});
+
+// PUT route to add a bookmark
+userRouter.put("/addBookmark/:userId", verifyToken, async (req, res) => {
+	try {
+		const { userId } = req.params;
+		const { questionID, question } = req.body;
+		const user = await UserModel.findById(userId);
+
+		if (!user) {
+			return res.status(404).json({ message: "User not found" });
+		}
+
+		// Check if the question is already bookmarked
+		const existingBookmark = user.bookmarks.find(
+			(bookmark) => bookmark.questionID.toString() === questionID
+		);
+
+		if (existingBookmark) {
+			return res
+				.status(409)
+				.json({ message: "Question already bookmarked" });
+		}
+
+		// Add the bookmark to the user's bookmarks array
+		user.bookmarks.push({
+			questionID,
+			question,
+		});
+
+		// Save the updated user with the new bookmark
+		await user.save();
+
+		res.status(200).json({ message: "Bookmark added successfully", user });
+	} catch (error: any) {
+		res.status(500).json({
+			message: "Failed to add bookmark",
+			error: error.message,
+		});
 	}
 });
 
 // Change password route
-userRouter.post("/change_password", verifyToken, async (req: Request, res: Response) => {
-	const { email, oldPassword, newPassword } = req.body;
-	try {
-		let user: IUser | null = await UserModel.findOne({ email });
-		if (!user) {
-			return res.status(404).json({isError: true, message: "User not found" });
-		}
-
-		bcrypt.compare(oldPassword, user.password, async (err, result) => {
-			if (err) {
-				return res.status(500).json({isError: true, message: "Internal server error" });
+userRouter.post(
+	"/change_password",
+	verifyToken,
+	async (req: Request, res: Response) => {
+		const { email, oldPassword, newPassword } = req.body;
+		try {
+			let user: IUser | null = await UserModel.findOne({ email });
+			if (!user) {
+				return res
+					.status(404)
+					.json({ isError: true, message: "User not found" });
 			}
 
-			if (result) {
-				try {
-					if (user) {
-						const hashedNewPassword = await bcrypt.hash(newPassword, 5);
-						user.password = hashedNewPassword;
-						await user.save();
-						res.status(200).json({
-              isError: false,
-							message: "Password updated successfully",
-						});
-					}else{
-            return res.status(404).json({isError: true, message: "User not found" });
-          }
-				} catch (error) {
-					console.log(error);
-					res.status(500).json({isError: true, message: "Internal server error" });
+			bcrypt.compare(oldPassword, user.password, async (err, result) => {
+				if (err) {
+					return res
+						.status(500)
+						.json({ isError: true, message: "Internal server error" });
 				}
-			} else {
-				res.status(401).json({isError: true, message: "Invalid old password" });
-			}
-		});
-	} catch (error) {
-		console.log(error);
-		res.status(500).json({isError: true, message: "Internal server error" });
+
+				if (result) {
+					try {
+						if (user) {
+							const hashedNewPassword = await bcrypt.hash(
+								newPassword,
+								5
+							);
+							user.password = hashedNewPassword;
+							await user.save();
+							res.status(200).json({
+								isError: false,
+								message: "Password updated successfully",
+							});
+						} else {
+							return res
+								.status(404)
+								.json({ isError: true, message: "User not found" });
+						}
+					} catch (error) {
+						console.log(error);
+						res.status(500).json({
+							isError: true,
+							message: "Internal server error",
+						});
+					}
+				} else {
+					res.status(401).json({
+						isError: true,
+						message: "Invalid old password",
+					});
+				}
+			});
+		} catch (error) {
+			console.log(error);
+			res.status(500).json({
+				isError: true,
+				message: "Internal server error",
+			});
+		}
 	}
-});
+);
 
 // Forgot password route
 userRouter.post("/forgot_password", async (req: Request, res: Response) => {
@@ -164,38 +224,52 @@ userRouter.post("/forgot_password", async (req: Request, res: Response) => {
 });
 
 // Logout route (protected with verifyToken middleware)
-userRouter.post('/logout', verifyToken, async(req: Request, res: Response) => {
-  try {
-		res.status(200).json({isError: false, message: "User logedout successfully" });
+userRouter.post("/logout", verifyToken, async (req: Request, res: Response) => {
+	try {
+		res.status(200).json({
+			isError: false,
+			message: "User logedout successfully",
+		});
 	} catch (error: any) {
-		res.status(404).json({isError: true, message: error.message });
+		res.status(404).json({ isError: true, message: error.message });
 	}
 });
 
 // Delete route
-userRouter.delete('/delete/:id', verifyToken, async (req: Request, res: Response) => {
-  try {
-    const userId = req.params.id;
-    const { password } = req.body;
+userRouter.delete(
+	"/delete/:id",
+	verifyToken,
+	async (req: Request, res: Response) => {
+		try {
+			const userId = req.params.id;
+			const { password } = req.body;
 
-    const user = await UserModel.findById(userId);
-    if (!user) {
-      return res.status(404).json({ isError: true, message: 'User not found' });
-    }
+			const user = await UserModel.findById(userId);
+			if (!user) {
+				return res
+					.status(404)
+					.json({ isError: true, message: "User not found" });
+			}
 
-    // Compare the provided password with the user's actual password
-    const passwordMatches = await bcrypt.compare(password, user.password);
-    if (!passwordMatches) {
-      return res.status(401).json({ isError: true, message: 'Invalid password' });
-    }
+			// Compare the provided password with the user's actual password
+			const passwordMatches = await bcrypt.compare(password, user.password);
+			if (!passwordMatches) {
+				return res
+					.status(401)
+					.json({ isError: true, message: "Invalid password" });
+			}
 
-    // If the password is correct, proceed with user deletion
-    await UserModel.findByIdAndDelete(userId);
+			// If the password is correct, proceed with user deletion
+			await UserModel.findByIdAndDelete(userId);
 
-    res.status(200).json({ isError: false, message: 'User deleted successfully' });
-  } catch (error: any) {
-    res.status(500).json({ isError: true, message: error.message });
-  }
-});
+			res.status(200).json({
+				isError: false,
+				message: "User deleted successfully",
+			});
+		} catch (error: any) {
+			res.status(500).json({ isError: true, message: error.message });
+		}
+	}
+);
 
-export default userRouter ;
+export default userRouter;

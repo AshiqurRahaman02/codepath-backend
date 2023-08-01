@@ -21,7 +21,6 @@ const jwtSecretKey = process.env.jwt_secret_key;
 const verifyToken = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const token = (_a = req.header('Authorization')) === null || _a === void 0 ? void 0 : _a.split(' ')[0];
-    console.log(token);
     if (!token) {
         return res.status(401).json({ isError: true, message: 'No token, authorization denied' });
     }

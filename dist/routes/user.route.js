@@ -102,17 +102,53 @@ userRouter.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, functi
         res.status(404).json({ isError: true, message: error.message });
     }
 }));
+// PUT route to add a bookmark
+userRouter.put("/addBookmark/:userId", auth_middleware_1.verifyToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { userId } = req.params;
+        const { questionID, question } = req.body;
+        const user = yield user_model_1.default.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        // Check if the question is already bookmarked
+        const existingBookmark = user.bookmarks.find((bookmark) => bookmark.questionID.toString() === questionID);
+        if (existingBookmark) {
+            return res
+                .status(409)
+                .json({ message: "Question already bookmarked" });
+        }
+        // Add the bookmark to the user's bookmarks array
+        user.bookmarks.push({
+            questionID,
+            question,
+        });
+        // Save the updated user with the new bookmark
+        yield user.save();
+        res.status(200).json({ message: "Bookmark added successfully", user });
+    }
+    catch (error) {
+        res.status(500).json({
+            message: "Failed to add bookmark",
+            error: error.message,
+        });
+    }
+}));
 // Change password route
 userRouter.post("/change_password", auth_middleware_1.verifyToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, oldPassword, newPassword } = req.body;
     try {
         let user = yield user_model_1.default.findOne({ email });
         if (!user) {
-            return res.status(404).json({ isError: true, message: "User not found" });
+            return res
+                .status(404)
+                .json({ isError: true, message: "User not found" });
         }
         bcrypt_1.default.compare(oldPassword, user.password, (err, result) => __awaiter(void 0, void 0, void 0, function* () {
             if (err) {
-                return res.status(500).json({ isError: true, message: "Internal server error" });
+                return res
+                    .status(500)
+                    .json({ isError: true, message: "Internal server error" });
             }
             if (result) {
                 try {
@@ -126,22 +162,33 @@ userRouter.post("/change_password", auth_middleware_1.verifyToken, (req, res) =>
                         });
                     }
                     else {
-                        return res.status(404).json({ isError: true, message: "User not found" });
+                        return res
+                            .status(404)
+                            .json({ isError: true, message: "User not found" });
                     }
                 }
                 catch (error) {
                     console.log(error);
-                    res.status(500).json({ isError: true, message: "Internal server error" });
+                    res.status(500).json({
+                        isError: true,
+                        message: "Internal server error",
+                    });
                 }
             }
             else {
-                res.status(401).json({ isError: true, message: "Invalid old password" });
+                res.status(401).json({
+                    isError: true,
+                    message: "Invalid old password",
+                });
             }
         }));
     }
     catch (error) {
         console.log(error);
-        res.status(500).json({ isError: true, message: "Internal server error" });
+        res.status(500).json({
+            isError: true,
+            message: "Internal server error",
+        });
     }
 }));
 // Forgot password route
@@ -170,31 +217,41 @@ userRouter.post("/forgot_password", (req, res) => __awaiter(void 0, void 0, void
     }
 }));
 // Logout route (protected with verifyToken middleware)
-userRouter.post('/logout', auth_middleware_1.verifyToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+userRouter.post("/logout", auth_middleware_1.verifyToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        res.status(200).json({ isError: false, message: "User logedout successfully" });
+        res.status(200).json({
+            isError: false,
+            message: "User logedout successfully",
+        });
     }
     catch (error) {
         res.status(404).json({ isError: true, message: error.message });
     }
 }));
 // Delete route
-userRouter.delete('/delete/:id', auth_middleware_1.verifyToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+userRouter.delete("/delete/:id", auth_middleware_1.verifyToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userId = req.params.id;
         const { password } = req.body;
         const user = yield user_model_1.default.findById(userId);
         if (!user) {
-            return res.status(404).json({ isError: true, message: 'User not found' });
+            return res
+                .status(404)
+                .json({ isError: true, message: "User not found" });
         }
         // Compare the provided password with the user's actual password
         const passwordMatches = yield bcrypt_1.default.compare(password, user.password);
         if (!passwordMatches) {
-            return res.status(401).json({ isError: true, message: 'Invalid password' });
+            return res
+                .status(401)
+                .json({ isError: true, message: "Invalid password" });
         }
         // If the password is correct, proceed with user deletion
         yield user_model_1.default.findByIdAndDelete(userId);
-        res.status(200).json({ isError: false, message: 'User deleted successfully' });
+        res.status(200).json({
+            isError: false,
+            message: "User deleted successfully",
+        });
     }
     catch (error) {
         res.status(500).json({ isError: true, message: error.message });
