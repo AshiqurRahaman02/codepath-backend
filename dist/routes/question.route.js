@@ -103,7 +103,7 @@ questionRouter.get("/byQuery", auth_middleware_1.verifyToken, (req, res) => __aw
         const { sort } = req.query;
         const status = req.query.s;
         const difficulty = req.query.d;
-        const skills = req.query.skill;
+        const skills = req.query.skills;
         const query = {};
         if (sort) {
             // Handle sorting
@@ -172,6 +172,7 @@ questionRouter.get("/byQuery", auth_middleware_1.verifyToken, (req, res) => __aw
         };
         // Create an array of all skill names
         const allSkills = Object.values(skillMap);
+        console.log(skills);
         if (skills) {
             // Handle skills filtering
             if (Array.isArray(skills)) {
@@ -300,35 +301,84 @@ questionRouter.get("/getById/:id", (req, res) => __awaiter(void 0, void 0, void 
     }
 }));
 // get a random question
-questionRouter.get("/random", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { categories } = req.body;
+questionRouter.get("/random", auth_middleware_1.verifyToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _b;
     try {
-        let query = {}; // An empty query to fetch all questions
-        if (categories && Array.isArray(categories)) {
-            query = { category: { $in: categories } }; // Fetch questions from specified categories
+        const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b.id;
+        const status = req.query.s;
+        const difficulty = req.query.d;
+        const skills = req.query.skills;
+        const query = {};
+        if (status) {
+            // Handle status filtering
+            if (status === "a") {
+                // Filter by 'Attempted' status (if 'status' is "a")
+                query.attemptedBy = userId;
+            }
+            else if (status === "not") {
+                // Filter by 'Not Attempted' status (if 'status' is "not")
+                query.attemptedBy = { $not: { $eq: userId } };
+            }
         }
-        // Count the total number of questions that match the query
-        const totalQuestionsCount = yield questions_model_1.default.countDocuments(query);
-        if (totalQuestionsCount === 0) {
-            return res
-                .status(404)
-                .json({ isError: true, message: "No questions found" });
+        if (difficulty) {
+            // Handle difficulty filtering
+            if (difficulty === "e") {
+                // Filter by 'Easy' difficulty (if 'd' is "e")
+                query.difficulty = "Easy";
+            }
+            if (difficulty === "m") {
+                // Filter by 'Medium' difficulty (if 'd' is "m")
+                query.difficulty = "Medium";
+            }
+            if (difficulty === "h") {
+                // Filter by 'Hard' difficulty (if 'd' is "h")
+                query.difficulty = "Hard";
+            }
         }
-        // Generate a random index to fetch a random question
-        const randomIndex = Math.floor(Math.random() * totalQuestionsCount);
-        // Fetch a single random question using the random index
-        const randomQuestion = yield questions_model_1.default.findOne(query).skip(randomIndex);
-        if (!randomQuestion) {
-            return res
-                .status(404)
-                .json({ isError: true, message: "Random question not found" });
+        // Map the sort form to the actual skill name
+        const skillMap = {
+            js: "JavaScript",
+            node: "Node Js",
+            ts: "TypeScript",
+            react: "React",
+            // Add other mappings based on your requirements
+        };
+        // Create an array of all skill names
+        const allSkills = Object.values(skillMap);
+        if (skills) {
+            // Handle skills filtering
+            if (Array.isArray(skills)) {
+                // Filter based on selected skills and include others if present
+                const selectedSkills = skills.filter((skill) => skillMap[skill] || skill === "others");
+                if (selectedSkills.length === 0) {
+                    // If no valid skills are selected, return all skills except the ones in the skillMap
+                    query.skill = { $nin: allSkills };
+                }
+                else {
+                    query.skill = {
+                        $in: selectedSkills.map((sortForm) => skillMap[sortForm] || sortForm),
+                    };
+                }
+            }
+            else {
+                // If 'skills' is a single string, filter based on that skill
+                if (skills === "others") {
+                    query.skill = { $nin: allSkills }; // Filter out all skills that are in the skillMap
+                }
+                else {
+                    query.skill = skillMap[skills];
+                }
+            }
         }
-        res.status(200).json({ isError: false, randomQuestion });
+        // Retrieve questions based on the constructed query
+        const questions = yield questions_model_1.default.find(query);
+        let question = questions[Math.floor(Math.random() * questions.length)];
+        res.status(200).json({ isError: false, question });
     }
     catch (error) {
         res.status(500).json({
             isError: true,
-            message: "Error fetching a random question",
+            message: "Failed to retrieve questions",
             error: error.message,
         });
     }
@@ -358,12 +408,36 @@ questionRouter.put("/update/:id", auth_middleware_1.verifyToken, auth_middleware
         });
     }
 }));
+// update attempted
+questionRouter.put("/update/attempted/:questionId", auth_middleware_1.verifyToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _c;
+    const questionId = req.params.questionId;
+    const userId = (_c = req.user) === null || _c === void 0 ? void 0 : _c.id;
+    try {
+        const question = yield questions_model_1.default.findById(questionId);
+        if (!question) {
+            return res
+                .status(404)
+                .json({ isError: true, message: "questionId not found" });
+        }
+        question.attemptedBy.push(userId);
+        const updatedQuestion = yield question.save();
+        res.status(200).json({
+            isError: false,
+            message: "Question updated successfully",
+            question: updatedQuestion,
+        });
+    }
+    catch (error) {
+        res.status(500).json({ isError: true, message: error.message });
+    }
+}));
 // update like
 questionRouter.put("/update/like/:questionId", auth_middleware_1.verifyToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b;
+    var _d;
     const questionId = req.params.questionId;
     const { action } = req.body;
-    const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b.id;
+    const userId = (_d = req.user) === null || _d === void 0 ? void 0 : _d.id;
     try {
         const question = yield questions_model_1.default.findById(questionId);
         if (!question) {
@@ -372,9 +446,10 @@ questionRouter.put("/update/like/:questionId", auth_middleware_1.verifyToken, (r
                 .json({ isError: true, message: "questionId not found" });
         }
         if (question.likedBy.includes(userId)) {
-            return res
-                .status(404)
-                .json({ isError: true, message: "You cannot like one question multiple times." });
+            return res.status(404).json({
+                isError: true,
+                message: "You cannot like one question multiple times.",
+            });
         }
         if (action === "increment") {
             question.likes++;
@@ -402,7 +477,7 @@ questionRouter.put("/update/like/:questionId", auth_middleware_1.verifyToken, (r
 }));
 // Delete a question by ID
 questionRouter.delete("/delete/:id", auth_middleware_1.verifyToken, auth_middleware_1.authorizedUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _c;
+    var _e;
     try {
         const questionId = req.params.id;
         // Check if the question exists
@@ -413,7 +488,7 @@ questionRouter.delete("/delete/:id", auth_middleware_1.verifyToken, auth_middlew
                 .json({ isError: true, message: "Question not found" });
         }
         // Check if the authenticated user is the creator of the question
-        if (question.creatorID !== ((_c = req.user) === null || _c === void 0 ? void 0 : _c.id)) {
+        if (question.creatorID !== ((_e = req.user) === null || _e === void 0 ? void 0 : _e.id)) {
             return res.status(403).json({
                 isError: true,
                 message: "You are not authorized to delete this question",

@@ -30,8 +30,8 @@ questionRouter.post("/post-data", async (req: Request, res: Response) => {
 					creatorName: questionData.creatorName,
 				});
 				await question.save();
-			}else{
-				console.log(questionData.question)
+			} else {
+				console.log(questionData.question);
 			}
 		}
 
@@ -94,123 +94,128 @@ questionRouter.get("/all", async (req: Request, res: Response) => {
 });
 
 // Get all questions by query
-questionRouter.get("/byQuery",verifyToken, async (req: Request, res: Response) => {
-	try {
-		const userId = req.user?.id;
-		const { sort } = req.query;
-		const status: string | string[] = req.query.s as string | string[];
-		const difficulty: string | string[] = req.query.d as string | string[];
-		const skills: string | string[] = req.query.skill as string | string[];
-		const query: any = {};
+questionRouter.get(
+	"/byQuery",
+	verifyToken,
+	async (req: Request, res: Response) => {
+		try {
+			const userId = req.user?.id;
+			const { sort } = req.query;
+			const status: string | string[] = req.query.s as string | string[];
+			const difficulty: string | string[] = req.query.d as string | string[];
+			const skills: string | string[] = req.query.skills as string | string[];
+			const query: any = {};
 
-		if (sort) {
-			// Handle sorting
-			if (sort === "po") {
-				// Sort by popularity (if 'sort' is "po")
-				query.likes = -1; // Sort by likes in descending order
-			} else if (sort === "asc") {
-				// Sort by difficulty: Easy to Hard (if 'sort' is "asc")
-				query.difficulty = {
-					$sort: {
-						$cond: [
-							{ $eq: ["$difficulty", "Easy"] },
-							1,
-							{ $cond: [{ $eq: ["$difficulty", "Medium"] }, 2, 3] },
-						],
-					},
-				};
-			} else if (sort === "desc") {
-				// Sort by difficulty: Hard to Easy (if 'sort' is "desc")
-				query.difficulty = {
-					$sort: {
-						$cond: [
-							{ $eq: ["$difficulty", "Hard"] },
-							1,
-							{ $cond: [{ $eq: ["$difficulty", "Medium"] }, 2, 3] },
-						],
-					},
-				};
-			}
-		}
-
-		if (status) {
-			// Handle status filtering
-			if (status === "a") {
-				// Filter by 'Attempted' status (if 'status' is "a")
-				query.attemptedBy = userId;
-			} else if (status === "not") {
-				// Filter by 'Not Attempted' status (if 'status' is "not")
-				query.attemptedBy = { $not: { $eq: userId } };
-			}
-		}
-
-		if (difficulty) {
-			// Handle difficulty filtering
-			if (difficulty === "e") {
-				// Filter by 'Easy' difficulty (if 'd' is "e")
-				query.difficulty = "Easy";
-			}
-			if (difficulty === "m") {
-				// Filter by 'Medium' difficulty (if 'd' is "m")
-				query.difficulty = "Medium";
-			}
-			if (difficulty === "h") {
-				// Filter by 'Hard' difficulty (if 'd' is "h")
-				query.difficulty = "Hard";
-			}
-		}
-
-		// Map the sort form to the actual skill name
-		const skillMap: Record<string, string> = {
-			js: "JavaScript",
-			node: "Node Js",
-			ts: "TypeScript",
-			react: "React",
-			// Add other mappings based on your requirements
-		};
-
-		// Create an array of all skill names
-		const allSkills = Object.values(skillMap);
-
-		if (skills) {
-			// Handle skills filtering
-			if (Array.isArray(skills)) {
-				// Filter based on selected skills and include others if present
-				const selectedSkills = skills.filter(
-					(skill) => skillMap[skill] || skill === "others"
-				);
-				if (selectedSkills.length === 0) {
-					// If no valid skills are selected, return all skills except the ones in the skillMap
-					query.skill = { $nin: allSkills };
-				} else {
-					query.skill = {
-						$in: selectedSkills.map(
-							(sortForm) => skillMap[sortForm] || sortForm
-						),
+			if (sort) {
+				// Handle sorting
+				if (sort === "po") {
+					// Sort by popularity (if 'sort' is "po")
+					query.likes = -1; // Sort by likes in descending order
+				} else if (sort === "asc") {
+					// Sort by difficulty: Easy to Hard (if 'sort' is "asc")
+					query.difficulty = {
+						$sort: {
+							$cond: [
+								{ $eq: ["$difficulty", "Easy"] },
+								1,
+								{ $cond: [{ $eq: ["$difficulty", "Medium"] }, 2, 3] },
+							],
+						},
+					};
+				} else if (sort === "desc") {
+					// Sort by difficulty: Hard to Easy (if 'sort' is "desc")
+					query.difficulty = {
+						$sort: {
+							$cond: [
+								{ $eq: ["$difficulty", "Hard"] },
+								1,
+								{ $cond: [{ $eq: ["$difficulty", "Medium"] }, 2, 3] },
+							],
+						},
 					};
 				}
-			} else {
-				// If 'skills' is a single string, filter based on that skill
-				if (skills === "others") {
-					query.skill = { $nin: allSkills }; // Filter out all skills that are in the skillMap
-				} else {
-					query.skill = skillMap[skills];
+			}
+
+			if (status) {
+				// Handle status filtering
+				if (status === "a") {
+					// Filter by 'Attempted' status (if 'status' is "a")
+					query.attemptedBy = userId;
+				} else if (status === "not") {
+					// Filter by 'Not Attempted' status (if 'status' is "not")
+					query.attemptedBy = { $not: { $eq: userId } };
 				}
 			}
+
+			if (difficulty) {
+				// Handle difficulty filtering
+				if (difficulty === "e") {
+					// Filter by 'Easy' difficulty (if 'd' is "e")
+					query.difficulty = "Easy";
+				}
+				if (difficulty === "m") {
+					// Filter by 'Medium' difficulty (if 'd' is "m")
+					query.difficulty = "Medium";
+				}
+				if (difficulty === "h") {
+					// Filter by 'Hard' difficulty (if 'd' is "h")
+					query.difficulty = "Hard";
+				}
+			}
+
+			// Map the sort form to the actual skill name
+			const skillMap: Record<string, string> = {
+				js: "JavaScript",
+				node: "Node Js",
+				ts: "TypeScript",
+				react: "React",
+				// Add other mappings based on your requirements
+			};
+
+			// Create an array of all skill names
+			const allSkills = Object.values(skillMap);
+			console.log(skills)
+
+			if (skills) {
+				// Handle skills filtering
+				if (Array.isArray(skills)) {
+					// Filter based on selected skills and include others if present
+					const selectedSkills = skills.filter(
+						(skill) => skillMap[skill] || skill === "others"
+					);
+					if (selectedSkills.length === 0) {
+						// If no valid skills are selected, return all skills except the ones in the skillMap
+						query.skill = { $nin: allSkills };
+					} else {
+						query.skill = {
+							$in: selectedSkills.map(
+								(sortForm) => skillMap[sortForm] || sortForm
+							),
+						};
+					}
+				} else {
+					// If 'skills' is a single string, filter based on that skill
+					if (skills === "others") {
+						query.skill = { $nin: allSkills }; // Filter out all skills that are in the skillMap
+					} else {
+						query.skill = skillMap[skills];
+					}
+				}
+			}
+
+			// Retrieve questions based on the constructed query
+			const questions: IQuestion[] = await QuestionsModel.find(query);
+
+			res.status(200).json({ isError: false, questions });
+		} catch (error: any) {
+			res.status(500).json({
+				isError: true,
+				message: "Failed to retrieve questions",
+				error: error.message,
+			});
 		}
-
-		// Retrieve questions based on the constructed query
-		const questions: IQuestion[] = await QuestionsModel.find(query);
-
-		res.status(200).json({ isError: false, questions });
-	} catch (error: any) {
-		res.status(500).json({
-			isError: true,
-			message: "Failed to retrieve questions",
-			error: error.message,
-		});
 	}
-});
+);
 
 // Search questions by input text
 questionRouter.get(
@@ -322,44 +327,90 @@ questionRouter.get("/getById/:id", async (req: Request, res: Response) => {
 });
 
 // get a random question
-questionRouter.get("/random", async (req: Request, res: Response) => {
-	const { categories } = req.body;
-
+questionRouter.get("/random",verifyToken, async (req: Request, res: Response) => {
 	try {
-		let query: any = {}; // An empty query to fetch all questions
+		const userId = req.user?.id;
+		const status: string | string[] = req.query.s as string | string[];
+		const difficulty: string | string[] = req.query.d as string | string[];
+		const skills: string | string[] = req.query.skills as string | string[];
+		const query: any = {};
 
-		if (categories && Array.isArray(categories)) {
-			query = { category: { $in: categories } }; // Fetch questions from specified categories
+
+		if (status) {
+			// Handle status filtering
+			if (status === "a") {
+				// Filter by 'Attempted' status (if 'status' is "a")
+				query.attemptedBy = userId;
+			} else if (status === "not") {
+				// Filter by 'Not Attempted' status (if 'status' is "not")
+				query.attemptedBy = { $not: { $eq: userId } };
+			}
 		}
 
-		// Count the total number of questions that match the query
-		const totalQuestionsCount = await QuestionsModel.countDocuments(query);
-
-		if (totalQuestionsCount === 0) {
-			return res
-				.status(404)
-				.json({ isError: true, message: "No questions found" });
+		if (difficulty) {
+			// Handle difficulty filtering
+			if (difficulty === "e") {
+				// Filter by 'Easy' difficulty (if 'd' is "e")
+				query.difficulty = "Easy";
+			}
+			if (difficulty === "m") {
+				// Filter by 'Medium' difficulty (if 'd' is "m")
+				query.difficulty = "Medium";
+			}
+			if (difficulty === "h") {
+				// Filter by 'Hard' difficulty (if 'd' is "h")
+				query.difficulty = "Hard";
+			}
 		}
 
-		// Generate a random index to fetch a random question
-		const randomIndex = Math.floor(Math.random() * totalQuestionsCount);
+		// Map the sort form to the actual skill name
+		const skillMap: Record<string, string> = {
+			js: "JavaScript",
+			node: "Node Js",
+			ts: "TypeScript",
+			react: "React",
+			// Add other mappings based on your requirements
+		};
 
-		// Fetch a single random question using the random index
-		const randomQuestion: IQuestion | null = await QuestionsModel.findOne(
-			query
-		).skip(randomIndex);
+		// Create an array of all skill names
+		const allSkills = Object.values(skillMap);
 
-		if (!randomQuestion) {
-			return res
-				.status(404)
-				.json({ isError: true, message: "Random question not found" });
+		if (skills) {
+			// Handle skills filtering
+			if (Array.isArray(skills)) {
+				// Filter based on selected skills and include others if present
+				const selectedSkills = skills.filter(
+					(skill) => skillMap[skill] || skill === "others"
+				);
+				if (selectedSkills.length === 0) {
+					// If no valid skills are selected, return all skills except the ones in the skillMap
+					query.skill = { $nin: allSkills };
+				} else {
+					query.skill = {
+						$in: selectedSkills.map(
+							(sortForm) => skillMap[sortForm] || sortForm
+						),
+					};
+				}
+			} else {
+				// If 'skills' is a single string, filter based on that skill
+				if (skills === "others") {
+					query.skill = { $nin: allSkills }; // Filter out all skills that are in the skillMap
+				} else {
+					query.skill = skillMap[skills];
+				}
+			}
 		}
 
-		res.status(200).json({ isError: false, randomQuestion });
+		// Retrieve questions based on the constructed query
+		const questions: IQuestion[] = await QuestionsModel.find(query);
+
+		let question = questions[Math.floor(Math.random() * questions.length)];
+		res.status(200).json({ isError: false, question });
 	} catch (error: any) {
 		res.status(500).json({
 			isError: true,
-			message: "Error fetching a random question",
+			message: "Failed to retrieve questions",
 			error: error.message,
 		});
 	}
@@ -403,6 +454,37 @@ questionRouter.put(
 	}
 );
 
+// update attempted
+questionRouter.put(
+	"/update/attempted/:questionId",
+	verifyToken,
+	async (req, res) => {
+		const questionId = req.params.questionId;
+		const userId = req.user?.id;
+
+		try {
+			const question = await QuestionsModel.findById(questionId);
+
+			if (!question) {
+				return res
+					.status(404)
+					.json({ isError: true, message: "questionId not found" });
+			}
+
+			question.attemptedBy.push(userId);
+			const updatedQuestion = await question.save();
+
+			res.status(200).json({
+				isError: false,
+				message: "Question updated successfully",
+				question: updatedQuestion,
+			});
+		} catch (error: any) {
+			res.status(500).json({ isError: true, message: error.message });
+		}
+	}
+);
+
 // update like
 questionRouter.put(
 	"/update/like/:questionId",
@@ -420,10 +502,11 @@ questionRouter.put(
 					.status(404)
 					.json({ isError: true, message: "questionId not found" });
 			}
-			if(question.likedBy.includes(userId)){
-				return res
-					.status(404)
-					.json({ isError: true, message: "You cannot like one question multiple times." });
+			if (question.likedBy.includes(userId)) {
+				return res.status(404).json({
+					isError: true,
+					message: "You cannot like one question multiple times.",
+				});
 			}
 
 			if (action === "increment") {
