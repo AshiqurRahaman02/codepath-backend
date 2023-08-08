@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.authorizedUser = exports.verifyToken = void 0;
+exports.adminVerification = exports.authorizedUser = exports.verifyToken = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const dotenv_1 = __importDefault(require("dotenv"));
@@ -66,3 +66,28 @@ const authorizedUser = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 exports.authorizedUser = authorizedUser;
+const adminVerification = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    var _c;
+    try {
+        // Assuming the authenticated user's ID is available on req.user.id
+        const userId = (_c = req.user) === null || _c === void 0 ? void 0 : _c.id;
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+        // Fetch the user from the database
+        const user = yield user_model_1.default.findById(userId);
+        if (!user) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+        // Check if the user is an "admin"
+        if (user.userType !== 'admin') {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+        // If the user is authorized, proceed to the next middleware or route handler
+        next();
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+exports.adminVerification = adminVerification;
