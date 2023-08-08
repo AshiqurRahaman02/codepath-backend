@@ -72,7 +72,6 @@ userRouter.post("/register", (req, res) => __awaiter(void 0, void 0, void 0, fun
 // Login route
 userRouter.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = req.body;
-    console.log(password);
     try {
         let user = yield user_model_1.default.findOne({ email });
         if (!user) {
