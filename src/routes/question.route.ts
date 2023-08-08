@@ -2,12 +2,12 @@ import express, { Request, Response } from "express";
 import fs from "fs";
 import path from "path";
 import QuestionsModel, { IQuestion } from "../models/questions.model";
-import { verifyToken, authorizedUser } from "../middlewares/auth.middleware";
+import { verifyToken, authorizedUser, adminVerification } from "../middlewares/auth.middleware";
 
 const questionRouter = express.Router();
 
 // for admin only
-questionRouter.post("/post-data", async (req: Request, res: Response) => {
+questionRouter.post("/post-data",adminVerification, async (req: Request, res: Response) => {
 	try {
 		const dataPath = path.join(__dirname, "../../data.json");
 		const jsonData = fs.readFileSync(dataPath, "utf8");
@@ -50,7 +50,7 @@ questionRouter.post(
 	verifyToken,
 	authorizedUser,
 	async (req: Request, res: Response) => {
-		const { question, answer, category, level, creatorID, creatorName } =
+		const { question, answer, skill, level, creatorID, creatorName } =
 			req.body;
 
 		try {
@@ -58,7 +58,7 @@ questionRouter.post(
 				question,
 				answer,
 				level,
-				category,
+				skill,
 				creatorID,
 				creatorName,
 			});

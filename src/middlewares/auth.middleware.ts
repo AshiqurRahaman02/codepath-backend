@@ -71,3 +71,31 @@ export const authorizedUser = async (req: Request, res: Response, next: NextFunc
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+export const adminVerification = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // Assuming the authenticated user's ID is available on req.user.id
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Fetch the user from the database
+    const user: IUser | null = await UserModel.findById(userId);
+
+    if (!user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Check if the user is an "admin"
+    if (user.userType !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    // If the user is authorized, proceed to the next middleware or route handler
+    next();
+  } catch (error) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
