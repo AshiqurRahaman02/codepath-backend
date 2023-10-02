@@ -7,7 +7,7 @@ import { verifyToken, authorizedUser, adminVerification } from "../middlewares/a
 const questionRouter = express.Router();
 
 // for admin only
-questionRouter.post("/post-data",adminVerification, async (req: Request, res: Response) => {
+questionRouter.post("/post-data",verifyToken, adminVerification, async (req: Request, res: Response) => {
 	try {
 		const dataPath = path.join(__dirname, "../../data.json");
 		const jsonData = fs.readFileSync(dataPath, "utf8");
