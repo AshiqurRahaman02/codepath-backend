@@ -50,14 +50,14 @@ questionRouter.post(
 	verifyToken,
 	authorizedUser,
 	async (req: Request, res: Response) => {
-		const { question, answer, skill, level, creatorID, creatorName } =
+		const { question, answer, skill, difficulty, creatorID, creatorName } =
 			req.body;
 
 		try {
 			const newQuestion: IQuestion = new QuestionsModel({
 				question,
 				answer,
-				difficulty:level,
+				difficulty,
 				skill,
 				creatorID,
 				creatorName,
