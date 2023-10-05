@@ -57,7 +57,7 @@ questionRouter.post(
 			const newQuestion: IQuestion = new QuestionsModel({
 				question,
 				answer,
-				level,
+				difficulty:level,
 				skill,
 				creatorID,
 				creatorName,
