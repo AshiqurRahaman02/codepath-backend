@@ -47,22 +47,22 @@ const authorizedUser = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         // Assuming the authenticated user's ID is available on req.user.id
         const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b.id;
         if (!userId) {
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(401).json({ isError: true, message: 'Unauthorized' });
         }
         // Fetch the user from the database
         const user = yield user_model_1.default.findById(userId);
         if (!user) {
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(401).json({ isError: true, message: 'Unauthorized' });
         }
         // Check if the user is either a "creator" or an "admin"
         if (user.userType !== 'creator' && user.userType !== 'admin') {
-            return res.status(403).json({ message: 'Forbidden' });
+            return res.status(403).json({ isError: true, message: 'Unauthorized' });
         }
         // If the user is authorized, proceed to the next middleware or route handler
         next();
     }
     catch (error) {
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ isError: true, message: 'Internal server error' });
     }
 });
 exports.authorizedUser = authorizedUser;
@@ -72,22 +72,22 @@ const adminVerification = (req, res, next) => __awaiter(void 0, void 0, void 0, 
         // Assuming the authenticated user's ID is available on req.user.id
         const userId = (_c = req.user) === null || _c === void 0 ? void 0 : _c.id;
         if (!userId) {
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(401).json({ isError: true, message: 'Unauthorized' });
         }
         // Fetch the user from the database
         const user = yield user_model_1.default.findById(userId);
         if (!user) {
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(401).json({ isError: true, message: 'Unauthorized' });
         }
         // Check if the user is an "admin"
         if (user.userType !== 'admin') {
-            return res.status(403).json({ message: 'Forbidden' });
+            return res.status(403).json({ isError: true, message: 'Unauthorized' });
         }
         // If the user is authorized, proceed to the next middleware or route handler
         next();
     }
     catch (error) {
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ isError: true, message: 'Internal server error' });
     }
 });
 exports.adminVerification = adminVerification;

@@ -19,7 +19,7 @@ const questions_model_1 = __importDefault(require("../models/questions.model"));
 const auth_middleware_1 = require("../middlewares/auth.middleware");
 const questionRouter = express_1.default.Router();
 // for admin only
-questionRouter.post("/post-data", auth_middleware_1.adminVerification, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+questionRouter.post("/post-data", auth_middleware_1.verifyToken, auth_middleware_1.adminVerification, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const dataPath = path_1.default.join(__dirname, "../../data.json");
         const jsonData = fs_1.default.readFileSync(dataPath, "utf8");
@@ -56,12 +56,12 @@ questionRouter.post("/post-data", auth_middleware_1.adminVerification, (req, res
 }));
 // Add a new question
 questionRouter.post("/add", auth_middleware_1.verifyToken, auth_middleware_1.authorizedUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { question, answer, skill, level, creatorID, creatorName } = req.body;
+    const { question, answer, skill, difficulty, creatorID, creatorName } = req.body;
     try {
         const newQuestion = new questions_model_1.default({
             question,
             answer,
-            level,
+            difficulty,
             skill,
             creatorID,
             creatorName,
